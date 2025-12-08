@@ -1,0 +1,15 @@
+{
+  "name": "Design Transfer",
+  "id": "1579762419585101108",
+  "api": "1.0.0",
+  "main": "code.js",
+  "capabilities": [],
+  "enableProposedApi": false,
+  "documentAccess": "dynamic-page",
+  "editorType": ["figma"],
+  "ui": "ui.html",
+  "networkAccess": {
+    "allowedDomains": ["https://api.figma.com"],
+    "reasoning": "This plugin needs to access Figma's REST API to list files and transfer design elements between files."
+  }
+}

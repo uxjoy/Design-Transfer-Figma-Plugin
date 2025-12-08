@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 12px;
+        padding: 16px;
+        color: #333;
+        background: #ffffff;
+      }
+
+      h2 {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 16px;
+        color: #000;
+      }
+
+      .section {
+        margin-bottom: 20px;
+      }
+
+      .label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 500;
+        font-size: 11px;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .step-container {
+        display: none;
+      }
+
+      .step-container.active {
+        display: block;
+      }
+
+      .token-info {
+        background: #e3f2fd;
+        border: 1px solid #2196f3;
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 16px;
+        font-size: 11px;
+        line-height: 1.5;
+      }
+
+      .token-info strong {
+        display: block;
+        margin-bottom: 6px;
+        color: #1565c0;
+        font-size: 12px;
+      }
+
+      .token-info a {
+        color: #2196f3;
+        text-decoration: none;
+        font-weight: 500;
+      }
+
+      .token-info a:hover {
+        text-decoration: underline;
+      }
+
+      .user-info {
+        background: #e8f5e9;
+        border: 1px solid #4caf50;
+        padding: 10px 12px;
+        border-radius: 6px;
+        margin-bottom: 16px;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .user-info .user-name {
+        font-weight: 600;
+        color: #2e7d32;
+      }
+
+      .user-info .change-token {
+        font-size: 10px;
+        color: #666;
+        cursor: pointer;
+        text-decoration: underline;
+      }
+
+      .user-info .change-token:hover {
+        color: #000;
+      }
+
+      .selection-preview {
+        background: #f8f9fa;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+      }
+
+      .selection-preview.has-selection {
+        border-color: #4caf50;
+        background: #f1f8f4;
+      }
+
+      .selection-preview.no-selection {
+        border-color: #ff9800;
+        background: #fff8e1;
+      }
+
+      .preview-content {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .preview-thumbnail {
+        width: 80px;
+        height: 80px;
+        border-radius: 6px;
+        background: #e0e0e0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        flex-shrink: 0;
+      }
+
+      .preview-thumbnail img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+      }
+
+      .preview-thumbnail .placeholder {
+        font-size: 32px;
+        color: #999;
+      }
+
+      .preview-info {
+        flex: 1;
+      }
+
+      .preview-name {
+        font-weight: 600;
+        font-size: 13px;
+        color: #000;
+        margin-bottom: 4px;
+      }
+
+      .preview-type {
+        font-size: 10px;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        background: #e0e0e0;
+        padding: 2px 6px;
+        border-radius: 3px;
+        display: inline-block;
+      }
+
+      .preview-message {
+        color: #f57c00;
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      select,
+      input[type="text"],
+      input[type="password"] {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid #d0d0d0;
+        border-radius: 4px;
+        font-size: 12px;
+        font-family: inherit;
+        background: white;
+        transition: border-color 0.2s;
+      }
+
+      select:hover,
+      input[type="text"]:hover,
+      input[type="password"]:hover {
+        border-color: #999;
+      }
+
+      select:focus,
+      input[type="text"]:focus,
+      input[type="password"]:focus {
+        outline: none;
+        border-color: #18a0fb;
+        box-shadow: 0 0 0 2px rgba(24, 160, 251, 0.2);
+      }
+
+      select:disabled,
+      input[type="text"]:disabled,
+      input[type="password"]:disabled {
+        background: #f5f5f5;
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+
+      button {
+        width: 100%;
+        padding: 10px 16px;
+        border: none;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-family: inherit;
+      }
+
+      .btn-primary {
+        background: #18a0fb;
+        color: white;
+      }
+
+      .btn-primary:hover:not(:disabled) {
+        background: #0d8de5;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(24, 160, 251, 0.3);
+      }
+
+      .btn-primary:active:not(:disabled) {
+        transform: translateY(0);
+      }
+
+      .btn-primary:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+
+      .btn-secondary {
+        background: #f0f0f0;
+        color: #333;
+        margin-top: 8px;
+      }
+
+      .btn-secondary:hover {
+        background: #e0e0e0;
+      }
+
+      .help-text {
+        font-size: 10px;
+        color: #666;
+        margin-top: 4px;
+        line-height: 1.4;
+      }
+
+      .checkbox-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .checkbox-container input[type="checkbox"] {
+        width: auto;
+        cursor: pointer;
+      }
+
+      .checkbox-container label {
+        font-size: 11px;
+        cursor: pointer;
+        font-weight: 500;
+      }
+
+      .notification {
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        right: 16px;
+        padding: 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        animation: slideDown 0.3s ease;
+        z-index: 1000;
+      }
+
+      .notification.success {
+        background: #4caf50;
+        color: white;
+      }
+
+      .notification.error {
+        background: #f44336;
+        color: white;
+      }
+
+      .notification.info {
+        background: #2196f3;
+        color: white;
+      }
+
+      @keyframes slideDown {
+        from {
+          transform: translateY(-100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      .loading {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border: 2px solid #f3f3f3;
+        border-top: 2px solid #18a0fb;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-left: 8px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .divider {
+        height: 1px;
+        background: #e0e0e0;
+        margin: 20px 0;
+      }
+
+      .spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid #f3f3f3;
+        border-top: 2px solid #18a0fb;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Step 1: Token Input -->
+    <div id="stepToken" class="step-container active">
+      <h2>🔐 Setup API Token</h2>
+
+      <div class="token-info">
+        <strong>Why do we need this?</strong>
+        To transfer designs between files, we need your Figma Personal Access
+        Token. This token is stored securely on your machine and never leaves
+        your device.
+      </div>
+
+      <div class="section">
+        <label class="label">Figma Personal Access Token</label>
+        <input
+          type="password"
+          id="tokenInput"
+          placeholder="Enter your Figma API token"
+        />
+        <div class="help-text">
+          Don't have a token? Generate one at:<br />
+          <a
+            href="https://www.figma.com/developers/api#access-tokens"
+            target="_blank"
+            >Figma Account Settings → Personal Access Tokens</a
+          >
+        </div>
+      </div>
+
+      <button id="validateTokenBtn" class="btn-primary" disabled>
+        Validate & Continue
+      </button>
+    </div>
+
+    <!-- Step 2: Transfer Form -->
+    <div id="stepForm" class="step-container">
+      <div class="user-info">
+        <div>
+          <span style="color: #666; font-size: 11px">Logged in as: </span>
+          <span class="user-name" id="userName">User</span>
+        </div>
+        <span class="change-token" id="changeToken">Change Token</span>
+      </div>
+
+      <h2>Transfer Design Element</h2>
+
+      <div id="selectionPreview" class="selection-preview no-selection">
+        <div class="preview-content">
+          <div class="preview-thumbnail">
+            <div class="placeholder">📦</div>
+          </div>
+          <div class="preview-info">
+            <div class="preview-message" id="previewMessage">
+              Select a frame or component to begin
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <label class="label">Destination File</label>
+        <select id="fileSelect" disabled>
+          <option value="">Loading files...</option>
+        </select>
+        <div class="help-text" style="margin-top: 8px">
+          Or paste a file URL below:
+        </div>
+        <input
+          type="text"
+          id="manualFileKey"
+          placeholder="Paste Figma file URL (optional)"
+          style="margin-top: 8px"
+          disabled
+        />
+      </div>
+
+      <div class="section">
+        <label class="label">Destination Page</label>
+        <select id="pageSelect" disabled>
+          <option value="">First select a file...</option>
+        </select>
+
+        <div class="checkbox-container">
+          <input type="checkbox" id="createNewPage" disabled />
+          <label for="createNewPage">Create new page</label>
+        </div>
+
+        <div id="newPageSection" style="display: none; margin-top: 8px">
+          <input
+            type="text"
+            id="newPageName"
+            placeholder="Enter new page name"
+          />
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <button id="transferBtn" class="btn-primary" disabled>
+        Transfer Design
+      </button>
+      <button id="cancelBtn" class="btn-secondary">Cancel</button>
+    </div>
+
+    <script>
+      let apiToken = null;
+      let hasValidSelection = false;
+      let selectedFileKey = null;
+      let selectedPageId = null;
+      let currentFileKey = null;
+      let selectionThumbnail = null;
+      let selectionData = null;
+
+      // Step 1: Token Management
+      const tokenInput = document.getElementById("tokenInput");
+      const validateTokenBtn = document.getElementById("validateTokenBtn");
+
+      tokenInput.addEventListener("input", (e) => {
+        validateTokenBtn.disabled = !e.target.value.trim();
+      });
+
+      validateTokenBtn.addEventListener("click", async () => {
+        const token = tokenInput.value.trim();
+        if (!token) return;
+
+        validateTokenBtn.disabled = true;
+        validateTokenBtn.innerHTML =
+          'Validating...<span class="loading"></span>';
+
+        parent.postMessage(
+          {
+            pluginMessage: {
+              type: "validate-token",
+              token: token,
+            },
+          },
+          "*"
+        );
+      });
+
+      // Change token handler
+      document.getElementById("changeToken").addEventListener("click", () => {
+        if (confirm("Are you sure you want to change your API token?")) {
+          apiToken = null;
+          showStep("stepToken");
+          tokenInput.value = "";
+        }
+      });
+
+      // Step 2: Transfer Form
+      const fileSelect = document.getElementById("fileSelect");
+      const manualFileKey = document.getElementById("manualFileKey");
+      const pageSelect = document.getElementById("pageSelect");
+      const createNewPage = document.getElementById("createNewPage");
+      const newPageSection = document.getElementById("newPageSection");
+      const newPageName = document.getElementById("newPageName");
+      const transferBtn = document.getElementById("transferBtn");
+
+      fileSelect.addEventListener("change", (e) => {
+        selectedFileKey = e.target.value;
+        if (selectedFileKey) {
+          loadPages(selectedFileKey);
+        }
+      });
+
+      manualFileKey.addEventListener("input", (e) => {
+        let input = e.target.value.trim();
+
+        if (!input) {
+          updateTransferButton();
+          return;
+        }
+
+        // Extract file key from URL
+        if (input.includes("figma.com")) {
+          const match = input.match(/file\/([a-zA-Z0-9]+)/);
+          if (match) {
+            input = match[1];
+          }
+        }
+
+        if (input.length > 10) {
+          selectedFileKey = input;
+
+          // Update select to show manual entry
+          if (
+            !Array.from(fileSelect.options).find((opt) => opt.value === input)
+          ) {
+            const option = document.createElement("option");
+            option.value = input;
+            option.textContent =
+              "Manual Entry: " + input.substring(0, 20) + "...";
+            option.selected = true;
+            fileSelect.appendChild(option);
+          }
+
+          loadPages(input);
+        }
+      });
+
+      pageSelect.addEventListener("change", (e) => {
+        selectedPageId = e.target.value;
+        updateTransferButton();
+      });
+
+      createNewPage.addEventListener("change", (e) => {
+        if (e.target.checked) {
+          newPageSection.style.display = "block";
+          pageSelect.disabled = true;
+          selectedPageId = null;
+        } else {
+          newPageSection.style.display = "none";
+          pageSelect.disabled = false;
+        }
+        updateTransferButton();
+      });
+
+      newPageName.addEventListener("input", updateTransferButton);
+
+      transferBtn.addEventListener("click", async () => {
+        transferBtn.disabled = true;
+        transferBtn.innerHTML = 'Transferring...<span class="loading"></span>';
+
+        parent.postMessage(
+          {
+            pluginMessage: {
+              type: "transfer",
+              token: apiToken,
+              fileKey: selectedFileKey,
+              pageId: selectedPageId,
+              newPageName: createNewPage.checked ? newPageName.value : null,
+            },
+          },
+          "*"
+        );
+      });
+
+      document.getElementById("cancelBtn").addEventListener("click", () => {
+        parent.postMessage({ pluginMessage: { type: "cancel" } }, "*");
+      });
+
+      // Helper Functions
+      function showStep(stepId) {
+        document.querySelectorAll(".step-container").forEach((step) => {
+          step.classList.remove("active");
+        });
+        document.getElementById(stepId).classList.add("active");
+      }
+
+      function loadFiles() {
+        fileSelect.disabled = true;
+        fileSelect.innerHTML = '<option value="">Loading files...</option>';
+
+        parent.postMessage(
+          {
+            pluginMessage: {
+              type: "get-files",
+              token: apiToken,
+            },
+          },
+          "*"
+        );
+      }
+
+      function loadPages(fileKey) {
+        pageSelect.disabled = true;
+        pageSelect.innerHTML = '<option value="">Loading pages...</option>';
+        createNewPage.disabled = true;
+
+        parent.postMessage(
+          {
+            pluginMessage: {
+              type: "get-pages",
+              fileKey: fileKey,
+              token: apiToken,
+            },
+          },
+          "*"
+        );
+      }
+
+      function updateTransferButton() {
+        const createNew = createNewPage.checked;
+        const newName = newPageName.value.trim();
+
+        const canTransfer =
+          hasValidSelection &&
+          selectedFileKey &&
+          (createNew ? newName : selectedPageId);
+
+        transferBtn.disabled = !canTransfer;
+      }
+
+      function updateSelectionPreview(data) {
+        const preview = document.getElementById("selectionPreview");
+        const message = document.getElementById("previewMessage");
+        const thumbnail = preview.querySelector(".preview-thumbnail");
+
+        if (data.hasSelection) {
+          preview.className = "selection-preview has-selection";
+
+          thumbnail.innerHTML = selectionThumbnail
+            ? `<img src="data:image/png;base64,${selectionThumbnail}" alt="${data.nodeName}">`
+            : '<div class="placeholder">📦</div>';
+
+          message.innerHTML = `
+          <div class="preview-name">${data.nodeName}</div>
+          <div class="preview-type">${data.nodeType}</div>
+        `;
+        } else {
+          preview.className = "selection-preview no-selection";
+          thumbnail.innerHTML = '<div class="placeholder">📦</div>';
+          message.innerHTML = `<div class="preview-message">${data.message}</div>`;
+        }
+      }
+
+      function showNotification(message, type = "success") {
+        const existing = document.querySelector(".notification");
+        if (existing) existing.remove();
+
+        const notification = document.createElement("div");
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+
+        setTimeout(() => notification.remove(), 4000);
+      }
+
+      // Handle messages from plugin
+      window.onmessage = (event) => {
+        const msg = event.data.pluginMessage;
+
+        if (msg.type === "stored-token-valid") {
+          if (msg.token) {
+            apiToken = msg.token;
+            document.getElementById("userName").textContent = msg.userName;
+            showStep("stepForm");
+            loadFiles();
+
+            // Request selection info
+            parent.postMessage(
+              { pluginMessage: { type: "get-selection" } },
+              "*"
+            );
+          } else {
+            showStep("stepToken");
+          }
+        } else if (msg.type === "token-validated") {
+          if (msg.success) {
+            apiToken = tokenInput.value.trim();
+            document.getElementById("userName").textContent = msg.userName;
+            showNotification("Token validated successfully!", "success");
+
+            setTimeout(() => {
+              showStep("stepForm");
+              loadFiles();
+
+              // Request selection info
+              parent.postMessage(
+                { pluginMessage: { type: "get-selection" } },
+                "*"
+              );
+            }, 500);
+          } else {
+            showNotification(msg.message || "Token validation failed", "error");
+            validateTokenBtn.disabled = false;
+            validateTokenBtn.textContent = "Validate & Continue";
+          }
+        } else if (msg.type === "selection-info") {
+          hasValidSelection = msg.hasSelection;
+          selectionData = msg;
+          updateSelectionPreview(msg);
+          updateTransferButton();
+        } else if (msg.type === "selection-thumbnail") {
+          selectionThumbnail = msg.thumbnail;
+          if (selectionData) {
+            updateSelectionPreview(selectionData);
+          }
+        } else if (msg.type === "files-list") {
+          currentFileKey = msg.currentFileKey;
+          fileSelect.innerHTML = "";
+
+          msg.files.forEach((file) => {
+            const option = document.createElement("option");
+            option.value = file.key;
+            option.textContent = file.name;
+            fileSelect.appendChild(option);
+          });
+
+          fileSelect.disabled = false;
+          manualFileKey.disabled = false;
+
+          if (msg.files.length > 0) {
+            selectedFileKey = msg.files[0].key;
+            loadPages(selectedFileKey);
+          }
+        } else if (msg.type === "pages-list") {
+          pageSelect.innerHTML = "";
+
+          if (msg.pages && msg.pages.length > 0) {
+            pageSelect.innerHTML = '<option value="">Select a page...</option>';
+            msg.pages.forEach((page) => {
+              const option = document.createElement("option");
+              option.value = page.id;
+              option.textContent = page.name;
+              pageSelect.appendChild(option);
+            });
+            pageSelect.disabled = false;
+            createNewPage.disabled = false;
+          } else {
+            pageSelect.innerHTML = '<option value="">No pages found</option>';
+          }
+
+          updateTransferButton();
+        } else if (msg.type === "success") {
+          showNotification(msg.message, "success");
+          // Keep the plugin open after successful transfer. Re-enable the transfer button.
+          transferBtn.disabled = false;
+          transferBtn.textContent = "Transfer Design";
+        } else if (msg.type === "cross-file-ready") {
+          showNotification(
+            "Cross-file transfer prepared. Follow the instructions.",
+            "info"
+          );
+          alert(
+            msg.message +
+              "\n\nThe element has been exported and is ready to transfer."
+          );
+          transferBtn.disabled = false;
+          transferBtn.textContent = "Transfer Design";
+        } else if (msg.type === "error") {
+          showNotification(msg.message, "error");
+          transferBtn.disabled = false;
+          transferBtn.textContent = "Transfer Design";
+        }
+      };
+
+      // Initialize
+      parent.postMessage(
+        { pluginMessage: { type: "check-stored-token" } },
+        "*"
+      );
+    </script>
+  </body>
+</html>
