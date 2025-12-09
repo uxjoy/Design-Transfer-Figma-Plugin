@@ -355,6 +355,122 @@
         border-radius: 50%;
         animation: spin 1s linear infinite;
       }
+
+      .progress-container {
+        display: none;
+        margin: 20px 0;
+        padding: 16px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border: 2px solid #18a0fb;
+      }
+
+      .progress-container.active {
+        display: block;
+      }
+
+      .progress-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .progress-percentage {
+        color: #18a0fb;
+        font-size: 14px;
+      }
+
+      .progress-bar-wrapper {
+        width: 100%;
+        height: 8px;
+        background: #e0e0e0;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 8px;
+      }
+
+      .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #18a0fb 0%, #0d8de5 100%);
+        border-radius: 4px;
+        transition: width 0.3s ease;
+        width: 0%;
+      }
+
+      .progress-message {
+        font-size: 11px;
+        color: #666;
+        font-style: italic;
+      }
+
+      .transfer-complete-box {
+        display: none;
+        margin: 20px 0;
+        padding: 16px;
+        border-radius: 8px;
+        border: 2px solid #4caf50;
+        background: #f1f8f4;
+      }
+
+      .transfer-complete-box.active {
+        display: block;
+      }
+
+      .transfer-complete-box.error {
+        border-color: #f44336;
+        background: #ffebee;
+      }
+
+      .transfer-complete-title {
+        font-weight: 600;
+        font-size: 13px;
+        margin-bottom: 8px;
+        color: #2e7d32;
+      }
+
+      .transfer-complete-box.error .transfer-complete-title {
+        color: #c62828;
+      }
+
+      .transfer-complete-message {
+        font-size: 12px;
+        color: #333;
+        margin-bottom: 12px;
+        line-height: 1.5;
+      }
+
+      .transfer-instructions {
+        background: white;
+        padding: 12px;
+        border-radius: 4px;
+        margin-top: 12px;
+      }
+
+      .transfer-instructions ol {
+        margin: 8px 0;
+        padding-left: 20px;
+      }
+
+      .transfer-instructions li {
+        font-size: 11px;
+        color: #333;
+        margin: 4px 0;
+        line-height: 1.4;
+      }
+
+      .btn-open-file {
+        background: #4caf50;
+        color: white;
+        margin-top: 12px;
+      }
+
+      .btn-open-file:hover {
+        background: #45a049;
+      }
     </style>
   </head>
   <body>
@@ -422,12 +538,12 @@
           <option value="">Loading files...</option>
         </select>
         <div class="help-text" style="margin-top: 8px">
-          Or paste a file URL below:
+          Or paste a file URL/key below:
         </div>
         <input
           type="text"
           id="manualFileKey"
-          placeholder="Paste Figma file URL (optional)"
+          placeholder="Paste Figma file URL or key (optional)"
           style="margin-top: 8px"
           disabled
         />
@@ -455,6 +571,37 @@
 
       <div class="divider"></div>
 
+      <!-- Progress Bar -->
+      <div id="progressContainer" class="progress-container">
+        <div class="progress-label">
+          <span>Transferring...</span>
+          <span class="progress-percentage" id="progressPercentage">0%</span>
+        </div>
+        <div class="progress-bar-wrapper">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <div class="progress-message" id="progressMessage">Initializing...</div>
+      </div>
+
+      <!-- Transfer Complete Box -->
+      <div id="transferCompleteBox" class="transfer-complete-box">
+        <div class="transfer-complete-title" id="completeTitle">
+          Transfer Complete!
+        </div>
+        <div class="transfer-complete-message" id="completeMessage"></div>
+        <div
+          id="transferInstructions"
+          class="transfer-instructions"
+          style="display: none"
+        >
+          <strong style="font-size: 12px">Next Steps:</strong>
+          <ol id="instructionsList"></ol>
+          <button id="openFileBtn" class="btn-open-file" style="display: none">
+            Open Destination File
+          </button>
+        </div>
+      </div>
+
       <button id="transferBtn" class="btn-primary" disabled>
         Transfer Design
       </button>
@@ -469,6 +616,11 @@
       let currentFileKey = null;
       let selectionThumbnail = null;
       let selectionData = null;
+
+      // Token scope tracking
+      let tokenHasReadAccess = false;
+      let tokenHasWriteAccess = false;
+      let tokenScopeMessage = "";
 
       // Step 1: Token Management
       const tokenInput = document.getElementById("tokenInput");
@@ -526,6 +678,14 @@
         let input = e.target.value.trim();
 
         if (!input) {
+          // Reset to current file if cleared
+          if (fileSelect.options.length > 0) {
+            fileSelect.selectedIndex = 0;
+            selectedFileKey = fileSelect.value;
+            if (selectedFileKey) {
+              loadPages(selectedFileKey);
+            }
+          }
           updateTransferButton();
           return;
         }
@@ -541,19 +701,21 @@
         if (input.length > 10) {
           selectedFileKey = input;
 
-          // Update select to show manual entry
-          if (
-            !Array.from(fileSelect.options).find((opt) => opt.value === input)
-          ) {
-            const option = document.createElement("option");
-            option.value = input;
-            option.textContent =
-              "Manual Entry: " + input.substring(0, 20) + "...";
-            option.selected = true;
-            fileSelect.appendChild(option);
-          }
+          // Load pages to get file name
+          pageSelect.innerHTML =
+            '<option value="">Loading file info...</option>';
+          pageSelect.disabled = true;
 
-          loadPages(input);
+          parent.postMessage(
+            {
+              pluginMessage: {
+                type: "get-pages",
+                fileKey: input,
+                token: apiToken,
+              },
+            },
+            "*"
+          );
         }
       });
 
@@ -685,6 +847,86 @@
         setTimeout(() => notification.remove(), 4000);
       }
 
+      function updateProgress(progress, message) {
+        const progressBar = document.getElementById("progressBar");
+        const progressPercentage =
+          document.getElementById("progressPercentage");
+        const progressMessage = document.getElementById("progressMessage");
+
+        progressBar.style.width = progress + "%";
+        progressPercentage.textContent = progress + "%";
+        progressMessage.textContent = message;
+      }
+
+      function showTransferComplete(
+        success,
+        message,
+        instructions,
+        fileKey,
+        fileName
+      ) {
+        // Hide progress bar
+        document.getElementById("progressContainer").classList.remove("active");
+
+        // Show complete box
+        const completeBox = document.getElementById("transferCompleteBox");
+        const completeTitle = document.getElementById("completeTitle");
+        const completeMessage = document.getElementById("completeMessage");
+        const instructionsDiv = document.getElementById("transferInstructions");
+        const instructionsList = document.getElementById("instructionsList");
+        const openFileBtn = document.getElementById("openFileBtn");
+
+        completeBox.classList.add("active");
+
+        if (success) {
+          completeBox.classList.remove("error");
+          completeTitle.textContent = "✓ Transfer Complete!";
+        } else {
+          completeBox.classList.add("error");
+          completeTitle.textContent = "✗ Transfer Failed";
+        }
+
+        completeMessage.textContent = message;
+
+        // Show instructions if provided
+        if (instructions && instructions.length > 0) {
+          instructionsDiv.style.display = "block";
+          instructionsList.innerHTML = "";
+          instructions.forEach((instruction) => {
+            const li = document.createElement("li");
+            li.textContent = instruction;
+            instructionsList.appendChild(li);
+          });
+
+          if (fileKey) {
+            openFileBtn.style.display = "block";
+            openFileBtn.onclick = () => {
+              const fileUrl = `https://www.figma.com/file/${fileKey}`;
+              window.open(fileUrl, "_blank");
+            };
+          } else {
+            openFileBtn.style.display = "none";
+          }
+        } else {
+          instructionsDiv.style.display = "none";
+        }
+
+        // Show transfer button again
+        transferBtn.style.display = "block";
+        transferBtn.disabled = false;
+        transferBtn.textContent = "Transfer Another";
+      }
+
+      function resetTransferUI() {
+        document.getElementById("progressContainer").classList.remove("active");
+        document
+          .getElementById("transferCompleteBox")
+          .classList.remove("active");
+        transferBtn.style.display = "block";
+        transferBtn.textContent = "Transfer Design";
+        updateTransferButton();
+      }
+
       // Handle messages from plugin
       window.onmessage = (event) => {
         const msg = event.data.pluginMessage;
@@ -707,8 +949,16 @@
         } else if (msg.type === "token-validated") {
           if (msg.success) {
             apiToken = tokenInput.value.trim();
-            document.getElementById("userName").textContent = msg.userName;
-            showNotification("Token validated successfully!", "success");
+            tokenHasReadAccess = msg.hasReadAccess || false;
+            tokenHasWriteAccess = msg.hasWriteAccess || false;
+            tokenScopeMessage = msg.scopeMessage || "";
+
+            document.getElementById("userName").textContent =
+              msg.userName + (tokenScopeMessage ? " " + tokenScopeMessage : "");
+            showNotification(
+              "Token validated successfully!" + tokenScopeMessage,
+              "success"
+            );
 
             setTimeout(() => {
               showStep("stepForm");
@@ -724,6 +974,26 @@
             showNotification(msg.message || "Token validation failed", "error");
             validateTokenBtn.disabled = false;
             validateTokenBtn.textContent = "Validate & Continue";
+          }
+        } else if (msg.type === "stored-token-valid") {
+          if (msg.token) {
+            apiToken = msg.token;
+            tokenHasReadAccess = msg.hasReadAccess || false;
+            tokenHasWriteAccess = msg.hasWriteAccess || false;
+            tokenScopeMessage = msg.scopeMessage || "";
+
+            document.getElementById("userName").textContent =
+              msg.userName + (tokenScopeMessage ? " " + tokenScopeMessage : "");
+            showStep("stepForm");
+            loadFiles();
+
+            // Request selection info
+            parent.postMessage(
+              { pluginMessage: { type: "get-selection" } },
+              "*"
+            );
+          } else {
+            showStep("stepToken");
           }
         } else if (msg.type === "selection-info") {
           hasValidSelection = msg.hasSelection;
@@ -757,6 +1027,28 @@
           pageSelect.innerHTML = "";
 
           if (msg.pages && msg.pages.length > 0) {
+            // Update file select dropdown with the fetched file name
+            if (msg.fileName && selectedFileKey) {
+              // Check if this file is already in the dropdown
+              const existingOption = Array.from(fileSelect.options).find(
+                (opt) => opt.value === selectedFileKey
+              );
+
+              if (!existingOption) {
+                // Add it to the dropdown
+                const option = document.createElement("option");
+                option.value = selectedFileKey;
+                option.textContent = msg.fileName;
+                option.selected = true;
+                fileSelect.appendChild(option);
+              } else if (
+                existingOption.textContent.startsWith("Manual Entry:")
+              ) {
+                // Update the text if it was a manual entry
+                existingOption.textContent = msg.fileName;
+              }
+            }
+
             pageSelect.innerHTML = '<option value="">Select a page...</option>';
             msg.pages.forEach((page) => {
               const option = document.createElement("option");
@@ -771,11 +1063,43 @@
           }
 
           updateTransferButton();
+        } else if (msg.type === "transfer-progress") {
+          updateProgress(msg.progress, msg.message);
+        } else if (msg.type === "copy-to-clipboard") {
+          // Trigger copy command
+          document.execCommand("copy");
+        } else if (msg.type === "open-destination-file") {
+          // Open the destination file and navigate to the page
+          setTimeout(() => {
+            const fileUrl = `https://www.figma.com/file/${
+              msg.fileKey
+            }/${encodeURIComponent(msg.fileName)}?node-id=${msg.pageId}`;
+            const opened = window.open(fileUrl, "_blank");
+
+            if (opened) {
+              showNotification(
+                `Opening ${msg.fileName}... Paste when it loads!`,
+                "info"
+              );
+            } else {
+              showNotification("Please allow pop-ups and try again", "error");
+            }
+          }, 500);
+        } else if (msg.type === "transfer-complete") {
+          if (msg.success) {
+            // Transfer successful
+            showTransferComplete(true, msg.message, null, null, null);
+            showNotification(msg.message, "success");
+          } else {
+            // Transfer failed
+            showTransferComplete(false, msg.message, null, null, null);
+            showNotification(msg.message, "error");
+            transferBtn.disabled = false;
+            transferBtn.textContent = "Transfer Design";
+          }
         } else if (msg.type === "success") {
           showNotification(msg.message, "success");
-          // Keep the plugin open after successful transfer. Re-enable the transfer button.
-          transferBtn.disabled = false;
-          transferBtn.textContent = "Transfer Design";
+          // Don't close the plugin anymore
         } else if (msg.type === "cross-file-ready") {
           showNotification(
             "Cross-file transfer prepared. Follow the instructions.",
